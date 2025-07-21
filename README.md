@@ -246,5 +246,3 @@ Contributions are welcome! Areas for improvement:
 - [Motorola S-Record Specification](https://en.wikipedia.org/wiki/SREC_(file_format)) - Format documentation
 
 ---
-
-**Built with ❤️ for embedded developers and firmware engineers** 
