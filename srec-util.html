@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SREC Packer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            background-image: 
+                radial-gradient(circle at 25% 25%, #1a1a2e 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, #16213e 0%, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            opacity: 0;
+            animation: pageLoad 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes pageLoad {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 32px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.12),
+                0 2px 8px rgba(0, 0, 0, 0.08);
+            max-width: 720px;
+            width: 100%;
+            text-align: center;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: containerSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes containerSlideIn {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInFromLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInFromRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200px 0;
+            }
+            100% {
+                background-position: calc(200px + 100%) 0;
+            }
+        }
+
+        .title {
+            font-size: 2em;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+            letter-spacing: -0.025em;
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 24px;
+            font-size: 0.95em;
+            font-weight: 400;
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+        }
+
+        .drop-zone {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 40px 24px;
+            margin: 20px 0;
+            background: #f9fafb;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+        }
+
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(55, 65, 81, 0.05),
+                transparent
+            );
+            transition: left 0.6s ease;
+        }
+
+        .drop-zone:hover::before {
+            left: 100%;
+        }
+
+        .drop-zone:hover {
+            border-color: #374151;
+            background: #f3f4f6;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .drop-zone.dragover {
+            border-color: #059669;
+            background: #ecfdf5;
+            border-style: solid;
+            transform: scale(1.02);
+            box-shadow: 0 15px 35px rgba(5, 150, 105, 0.15);
+        }
+
+        .drop-zone:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        .drop-icon {
+            font-size: 2.5em;
+            color: #6b7280;
+            margin-bottom: 12px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-block;
+        }
+
+        .drop-zone:hover .drop-icon {
+            color: #374151;
+            transform: translateY(-3px) rotate(5deg) scale(1.1);
+        }
+
+        .drop-zone.dragover .drop-icon {
+            color: #059669;
+            transform: scale(1.2) rotate(-5deg);
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .drop-text {
+            font-size: 1em;
+            color: #374151;
+            margin-bottom: 6px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .drop-zone:hover .drop-text {
+            color: #1f2937;
+            transform: translateY(-1px);
+        }
+
+        .drop-subtext {
+            color: #6b7280;
+            font-size: 0.85em;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .drop-zone:hover .drop-subtext {
+            color: #374151;
+        }
+
+        .config-section {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            text-align: left;
+            display: none;
+            opacity: 0;
+        }
+
+        .config-section.show {
+            display: block;
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .config-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            opacity: 0;
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .config-row:nth-child(odd) {
+            animation: slideInFromLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .config-row:nth-child(even) {
+            animation: slideInFromRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .config-row:nth-child(1) { animation-delay: 0.5s; }
+        .config-row:nth-child(2) { animation-delay: 0.55s; }
+        .config-row:nth-child(3) { animation-delay: 0.6s; }
+        .config-row:nth-child(4) { animation-delay: 0.65s; }
+        .config-row:nth-child(5) { animation-delay: 0.7s; }
+        .config-row:nth-child(6) { animation-delay: 0.75s; }
+        .config-row:nth-child(7) { animation-delay: 0.8s; }
+        .config-row:nth-child(8) { animation-delay: 0.85s; }
+
+        .config-label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.875em;
+        }
+
+        .config-input, .config-select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            background: white;
+            position: relative;
+        }
+
+        .config-input:hover, .config-select:hover {
+            border-color: #9ca3af;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .config-input:focus, .config-select:focus {
+            outline: none;
+            border-color: #374151;
+            box-shadow: 0 0 0 3px rgba(55, 65, 81, 0.1), 0 8px 25px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .config-input:active, .config-select:active {
+            transform: translateY(0);
+        }
+
+        .convert-btn {
+            background: #1f2937;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            font-size: 0.95em;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            margin: 16px 0;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .convert-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+            );
+            transition: left 0.6s ease;
+        }
+
+        .convert-btn:hover::before {
+            left: 100%;
+        }
+
+        .convert-btn:enabled {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards;
+        }
+
+        .convert-btn:hover:enabled {
+            background: #111827;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(31, 41, 55, 0.3);
+        }
+
+        .convert-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            display: none;
+            margin: 16px 0;
+            opacity: 0;
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #374151;
+            border-radius: 50%;
+            animation: spin 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            margin: 0 auto 12px;
+            position: relative;
+        }
+
+        .spinner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid #6b7280;
+            border-radius: 50%;
+            animation: spin-reverse 1.2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes spin-reverse {
+            0% { transform: translate(-50%, -50%) rotate(360deg); }
+            100% { transform: translate(-50%, -50%) rotate(0deg); }
+        }
+
+        .loading-text {
+            color: #374151;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #374151, #6b7280);
+            border-radius: 3px;
+            transition: width 0.1s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: 0.8em;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+
+
+        .result {
+            display: none;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 16px 0;
+            animation: resultSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+
+        @keyframes resultSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .download-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin-top: 16px;
+        }
+
+        .download-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .file-info {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+            display: none;
+            font-size: 0.9em;
+            opacity: 0;
+            animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-info::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(59, 130, 246, 0.05),
+                transparent
+            );
+            transition: left 0.6s ease;
+        }
+
+        .file-info:hover::before {
+            left: 100%;
+        }
+
+        .file-info:hover {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-details {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .file-icon {
+            font-size: 2em;
+            color: #3b82f6;
+        }
+
+        .file-meta {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        .file-size {
+            color: #6b7280;
+            font-size: 0.85em;
+        }
+
+        .change-file-hint {
+            color: #6b7280;
+            font-size: 0.8em;
+            text-align: center;
+            margin-top: 8px;
+            opacity: 0.7;
+        }
+
+        .file-info:hover .change-file-hint {
+            opacity: 1;
+            color: #3b82f6;
+        }
+
+        .srec-info {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            text-align: left;
+            display: none;
+            font-size: 0.9em;
+            opacity: 0;
+            animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .srec-info:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(71, 85, 105, 0.1);
+        }
+
+        .srec-info.show {
+            display: block;
+        }
+
+        .srec-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .srec-icon {
+            font-size: 2em;
+            color: #3b82f6;
+        }
+
+        .srec-title {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 1.1em;
+        }
+
+        .srec-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .srec-stats .srec-stat:nth-child(5) {
+            grid-column: 1;
+        }
+
+
+
+        .srec-stat {
+            color: #334155;
+        }
+
+        .srec-stat-label {
+            font-size: 0.8em;
+            color: #64748b;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .srec-stat-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+
+
+        .hidden {
+            display: none;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+                /* Enhanced focus ring for accessibility */
+        *:focus-visible {
+            outline: 2px solid #374151;
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        /* Smooth text selection */
+        ::selection {
+            background: rgba(55, 65, 81, 0.2);
+        }
+
+        /* Reduced motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+         @media (max-width: 768px) {
+             .container {
+                 padding: 24px;
+                 margin: 8px;
+             }
+             
+             .config-grid {
+                 grid-template-columns: 1fr;
+                 gap: 12px;
+             }
+             
+             .title {
+                 font-size: 1.75em;
+             }
+             
+             .drop-zone {
+                 padding: 32px 20px;
+             }
+             
+             .drop-icon {
+                 font-size: 2em;
+             }
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">S-Record Utility v1.0</h1>
+        <p class="subtitle">Bin to Srec Converter</p>
+        
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-icon">📁</div>
+            <div class="drop-text">Drag & drop your file here</div>
+            <div class="drop-subtext">Supports .bin and .srec files</div>
+            <input type="file" id="fileInput" accept=".bin,.srec">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-details">
+                <div class="file-icon">📄</div>
+                <div class="file-meta">
+                    <div class="file-name" id="fileName"></div>
+                    <div class="file-size" id="fileSize"></div>
+                </div>
+            </div>
+            <div class="change-file-hint">Click to select a different file</div>
+        </div>
+
+        <div class="srec-info" id="srecInfo">
+            <div class="srec-header">
+                <div class="srec-icon">⚡</div>
+                <div class="srec-title" id="srecTitle">SREC File Detected</div>
+            </div>
+            <div class="srec-stats">
+                <div class="srec-stat">
+                    <div class="srec-stat-label">Records</div>
+                    <div class="srec-stat-value" id="srecRecords">-</div>
+                </div>
+                <div class="srec-stat">
+                    <div class="srec-stat-label">Record Type</div>
+                    <div class="srec-stat-value" id="srecRecordType">-</div>
+                </div>
+                <div class="srec-stat">
+                    <div class="srec-stat-label">Start Address</div>
+                    <div class="srec-stat-value" id="srecStartAddress">-</div>
+                </div>
+                <div class="srec-stat">
+                    <div class="srec-stat-label">Address Offset</div>
+                    <div class="srec-stat-value" id="srecAddressOffset">-</div>
+                </div>
+                <div class="srec-stat">
+                    <div class="srec-stat-label">Data Size</div>
+                    <div class="srec-stat-value" id="srecDataSize">-</div>
+                </div>
+            </div>
+            <div class="change-file-hint">Click to select a different file</div>
+        </div>
+
+        <div class="config-section" id="configSection">
+            <div class="config-grid">
+                <div class="config-row">
+                    <label class="config-label">Record Type:</label>
+                    <select class="config-select" id="recordType">
+                        <option value="S1">S1 (16-bit address)</option>
+                        <option value="S2">S2 (24-bit address)</option>
+                        <option value="S3" selected>S3 (32-bit address)</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label class="config-label">Termination Record:</label>
+                    <select class="config-select" id="terminationType">
+                        <option value="S7" selected>S7 (for S3 records)</option>
+                        <option value="S8">S8 (for S2 records)</option>
+                        <option value="S9">S9 (for S1 records)</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label class="config-label">Start Address:</label>
+                    <input type="text" class="config-input" id="startAddress" value="0x01600000" placeholder="0x01600000">
+                </div>
+                <div class="config-row">
+                    <label class="config-label">Address Offset:</label>
+                    <input type="text" class="config-input" id="addressOffset" value="0x00000000" placeholder="0x00000000">
+                </div>
+                <div class="config-row">
+                    <label class="config-label">Bytes per Record:</label>
+                    <input type="number" class="config-input" id="byteCount" value="32" min="1" max="255">
+                </div>
+                <div class="config-row">
+                    <label class="config-label">Hex Case:</label>
+                    <select class="config-select" id="hexCase">
+                        <option value="upper" selected>Uppercase</option>
+                        <option value="lower">Lowercase</option>
+                    </select>
+                </div>
+                <div class="config-row">
+                    <label class="config-label">Output Filename:</label>
+                    <input type="text" class="config-input" id="outputFilename" placeholder="Auto-generated">
+                </div>
+                <div class="config-row">
+                    <label class="config-label">Data Fill Pattern:</label>
+                    <input type="text" class="config-input" id="fillPattern" value="0xFF" placeholder="0xFF">
+                </div>
+            </div>
+        </div>
+
+        <button class="convert-btn" id="convertBtn" disabled>
+            <span id="convertBtnText">Convert</span>
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Converting<span class="dots"></span></div>
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-text" id="progressText" style="display: none;"></div>
+        </div>
+
+        <div class="result" id="result">
+            <div><strong>✅ Conversion successful!</strong></div>
+            <div id="resultInfo"></div>
+            <button class="download-btn" id="downloadBtn">Download SREC File</button>
+        </div>
+    </div>
+
+    <script>
+        class SRECPacker {
+            constructor() {
+                this.fileData = null;
+                this.fileName = '';
+                this.fileType = null; // 'bin' or 'srec'
+                this.convertedData = '';
+                this.srecInfo = null;
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                const dropZone = document.getElementById('dropZone');
+                const fileInput = document.getElementById('fileInput');
+                const fileInfo = document.getElementById('fileInfo');
+                const srecInfo = document.getElementById('srecInfo');
+                const convertBtn = document.getElementById('convertBtn');
+                const downloadBtn = document.getElementById('downloadBtn');
+
+                // Drop zone events
+                dropZone.addEventListener('click', () => fileInput.click());
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('dragover');
+                });
+                dropZone.addEventListener('dragleave', () => {
+                    dropZone.classList.remove('dragover');
+                });
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.handleFile(files[0]);
+                    }
+                });
+
+                // File info and SREC info click to change file
+                fileInfo.addEventListener('click', () => fileInput.click());
+                srecInfo.addEventListener('click', () => fileInput.click());
+
+                // File input change
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleFile(e.target.files[0]);
+                    }
+                });
+
+                // Convert button
+                convertBtn.addEventListener('click', () => this.convert());
+
+                // Download button
+                downloadBtn.addEventListener('click', () => this.download());
+            }
+
+            async handleFile(file) {
+                this.fileName = file.name;
+                this.resetUI();
+                this.setupFileSizeInfo(file);
+                
+                try {
+                    // Always use streaming approach with progress
+                    this.showProgress('Reading file', 0);
+                    
+                    // Read file in chunks to detect type efficiently
+                    const chunk = await this.readFileChunk(file, 0, 1024);
+                    this.fileType = this.detectFileType(file.name, chunk);
+                    
+                    // Read full file with progress tracking
+                    const data = await this.readFileWithProgress(file);
+                    
+                    if (this.fileType === 'srec') {
+                        this.handleSRECFile(file, data);
+                    } else {
+                        this.handleBinaryFile(file, data);
+                    }
+                    
+                    this.hideProgress();
+                } catch (error) {
+                    this.hideProgress();
+                    alert(`Error reading file: ${error.message}`);
+                }
+            }
+
+            setupFileSizeInfo(file) {
+                const sizeMB = file.size / (1024 * 1024);
+                this.fileSizeMB = sizeMB;
+            }
+
+            readFileChunk(file, start, length) {
+                return new Promise((resolve, reject) => {
+                    const chunk = file.slice(start, start + length);
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(chunk);
+                });
+            }
+
+            readFileWithProgress(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            const progress = (e.loaded / e.total) * 100;
+                            this.updateProgress(progress, 'Reading file');
+                        }
+                    };
+                    
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            detectFileType(fileName, data) {
+                const ext = fileName.toLowerCase().split('.').pop();
+                
+                if (ext === 'srec' || ext === 's19' || ext === 's28' || ext === 's37') {
+                    // Verify SREC format by checking content
+                    const text = new TextDecoder().decode(data);
+                    if (this.validateSRECFormat(text)) {
+                        return 'srec';
+                    }
+                }
+                
+                return 'bin';
+            }
+
+            validateSRECFormat(text) {
+                const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+                if (lines.length === 0) return false;
+                
+                // Check first few lines for efficient validation
+                const checkLines = Math.min(lines.length, 20);
+                let validCount = 0;
+                
+                for (let i = 0; i < checkLines; i++) {
+                    const line = lines[i];
+                    if (line.length >= 8 && line.match(/^S[0-9][0-9A-Fa-f]+$/)) {
+                        validCount++;
+                    }
+                }
+                
+                // At least 70% of checked lines should be valid SREC
+                return (validCount / checkLines) >= 0.7;
+            }
+
+            handleBinaryFile(file, data) {
+                this.fileData = new Uint8Array(data);
+                
+                // Show file info and config
+                this.showFileInfo(file);
+                this.showConfigSection();
+                
+                document.getElementById('convertBtnText').textContent = 'Convert to SREC';
+                document.getElementById('convertBtn').disabled = false;
+            }
+
+            handleSRECFile(file, data) {
+                const text = new TextDecoder().decode(data);
+                this.fileData = text;
+                this.srecInfo = this.parseSRECInfo(text);
+                
+                // Show SREC info
+                this.showSRECInfo(file);
+                
+                document.getElementById('convertBtnText').textContent = 'Convert to BIN';
+                document.getElementById('convertBtn').disabled = false;
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
+
+            resetUI() {
+                // Hide all sections except drop zone
+                document.getElementById('dropZone').style.display = 'none';
+                document.getElementById('fileInfo').style.display = 'none';
+                document.getElementById('srecInfo').style.display = 'none';
+                document.getElementById('configSection').style.display = 'none';
+                document.getElementById('result').style.display = 'none';
+                
+                // Remove show classes
+                document.getElementById('fileInfo').classList.remove('show');
+                document.getElementById('srecInfo').classList.remove('show');
+                document.getElementById('configSection').classList.remove('show');
+            }
+
+            showFileInfo(file) {
+                const dropZone = document.getElementById('dropZone');
+                const fileInfo = document.getElementById('fileInfo');
+                
+                dropZone.style.display = 'none';
+                
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = this.formatFileSize(file.size);
+                
+                fileInfo.style.display = 'block';
+                fileInfo.classList.add('show');
+            }
+
+            showSRECInfo(file) {
+                const dropZone = document.getElementById('dropZone');
+                const srecInfo = document.getElementById('srecInfo');
+                const srecTitle = document.getElementById('srecTitle');
+                
+                dropZone.style.display = 'none';
+                
+                // Update title to show filename
+                srecTitle.textContent = `SREC File Detected: ${file.name}`;
+                
+                document.getElementById('srecRecords').textContent = this.srecInfo.records;
+                document.getElementById('srecDataSize').textContent = this.formatFileSize(this.srecInfo.dataSize);
+                document.getElementById('srecStartAddress').textContent = this.srecInfo.startAddress;
+                document.getElementById('srecAddressOffset').textContent = this.srecInfo.addressOffset;
+                document.getElementById('srecRecordType').textContent = this.srecInfo.recordType;
+                
+                srecInfo.style.display = 'block';
+                srecInfo.classList.add('show');
+            }
+
+            showConfigSection() {
+                const configSection = document.getElementById('configSection');
+                configSection.style.display = 'block';
+                configSection.classList.add('show');
+            }
+
+            showProgress(text, percent) {
+                const progressContainer = document.getElementById('progressContainer');
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                const loadingText = document.getElementById('loadingText');
+                
+                // Ensure percent is bounded and rounded consistently
+                const boundedPercent = Math.max(0, Math.min(100, percent));
+                const roundedPercent = Math.round(boundedPercent);
+                
+                loadingText.textContent = text;
+                progressContainer.style.display = 'block';
+                progressText.style.display = 'block';
+                
+                // Use rounded percent for both visual and text to ensure sync
+                progressBar.style.width = roundedPercent + '%';
+                progressText.textContent = `${roundedPercent}%`;
+            }
+
+            updateProgress(percent, text) {
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                const loadingText = document.getElementById('loadingText');
+                
+                // Ensure percent is bounded and rounded consistently
+                const boundedPercent = Math.max(0, Math.min(100, percent));
+                const roundedPercent = Math.round(boundedPercent);
+                
+                if (text) loadingText.textContent = text;
+                
+                // Use rounded percent for both visual and text to ensure sync
+                progressBar.style.width = roundedPercent + '%';
+                progressText.textContent = `${roundedPercent}%`;
+            }
+
+            hideProgress() {
+                const progressContainer = document.getElementById('progressContainer');
+                const progressText = document.getElementById('progressText');
+                
+                progressContainer.style.display = 'none';
+                progressText.style.display = 'none';
+            }
+
+            resetToDropZone() {
+                document.getElementById('dropZone').style.display = 'block';
+                this.resetUI();
+                
+                this.fileData = null;
+                this.fileName = '';
+                this.fileType = null;
+                this.convertedData = '';
+                this.srecInfo = null;
+                this.fileSizeMB = 0;
+                document.getElementById('convertBtn').disabled = true;
+            }
+
+            parseSRECInfo(text) {
+                const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+                let dataSize = 0;
+                let minAddr = Infinity;
+                let maxAddr = -Infinity;
+                let recordTypes = new Set();
+                let dataRecords = 0;
+                let hasTermination = false;
+                let terminationAddress = null;
+
+                for (const line of lines) {
+                    if (line.length < 8) continue; // Minimum valid SREC line
+                    
+                    const type = line.substring(0, 2);
+                    recordTypes.add(type);
+                    
+                    // Check for termination records
+                    if (type === 'S7' || type === 'S8' || type === 'S9') {
+                        hasTermination = true;
+                        const lengthByte = parseInt(line.substring(2, 4), 16);
+                        const addrBytes = type === 'S7' ? 4 : type === 'S8' ? 3 : 2;
+                        if (line.length >= 4 + addrBytes * 2 + 2) {
+                            const addrHex = line.substring(4, 4 + addrBytes * 2);
+                            terminationAddress = parseInt(addrHex, 16);
+                        }
+                    }
+                    
+                    if (type === 'S1' || type === 'S2' || type === 'S3') {
+                        const lengthByte = parseInt(line.substring(2, 4), 16);
+                        if (isNaN(lengthByte)) continue;
+                        
+                        const addrBytes = type === 'S1' ? 2 : type === 'S2' ? 3 : 4;
+                        
+                        // Validate line length
+                        if (line.length < 4 + addrBytes * 2 + 2) continue;
+                        
+                        const dataBytes = lengthByte - addrBytes - 1; // subtract address and checksum
+                        if (dataBytes < 0) continue; // Invalid record
+                        
+                        dataSize += dataBytes;
+                        dataRecords++;
+                        
+                        // Parse address safely
+                        const addrHex = line.substring(4, 4 + addrBytes * 2);
+                        const addr = parseInt(addrHex, 16);
+                        if (!isNaN(addr)) {
+                            minAddr = Math.min(minAddr, addr);
+                            maxAddr = Math.max(maxAddr, addr + dataBytes - 1);
+                        }
+                    }
+                }
+
+                const startAddress = minAddr === Infinity ? 'N/A' : `0x${minAddr.toString(16).toUpperCase()}`;
+                const addressOffset = '0x00000000'; // No additional offset from detected start
+                const addressSize = minAddr === Infinity ? 'N/A' : this.formatFileSize(maxAddr - minAddr + 1);
+
+                return {
+                    records: dataRecords,
+                    dataSize,
+                    startAddress,
+                    addressOffset,
+                    addressSize,
+                    addressRange: minAddr === Infinity ? 'N/A' : `0x${minAddr.toString(16).toUpperCase()} - 0x${maxAddr.toString(16).toUpperCase()}`,
+                    recordType: Array.from(recordTypes).filter(t => t.match(/^S[0-9]$/)).join(', '),
+                    hasTermination,
+                    terminationAddress
+                };
+            }
+
+
+
+            checksum(byteArray) {
+                const sum = byteArray.reduce((acc, byte) => acc + byte, 0);
+                return (~sum) & 0xFF;
+            }
+
+
+
+            generateTerminationRecord(type, startAddress, hexCase) {
+                const hexFormat = hexCase === 'upper' ? 'toUpperCase' : 'toLowerCase';
+                
+                switch (type) {
+                    case 'S7': // 32-bit start address
+                        const s7Record = [0x05, (startAddress >> 24) & 0xFF, (startAddress >> 16) & 0xFF, (startAddress >> 8) & 0xFF, startAddress & 0xFF];
+                        const s7Checksum = this.checksum(s7Record);
+                        return 'S7' + s7Record.map(b => b.toString(16)[hexFormat]().padStart(2, '0')).join('') + s7Checksum.toString(16)[hexFormat]().padStart(2, '0');
+                    
+                    case 'S8': // 24-bit start address
+                        const s8Record = [0x04, (startAddress >> 16) & 0xFF, (startAddress >> 8) & 0xFF, startAddress & 0xFF];
+                        const s8Checksum = this.checksum(s8Record);
+                        return 'S8' + s8Record.map(b => b.toString(16)[hexFormat]().padStart(2, '0')).join('') + s8Checksum.toString(16)[hexFormat]().padStart(2, '0');
+                    
+                    case 'S9': // 16-bit start address
+                        const s9Record = [0x03, (startAddress >> 8) & 0xFF, startAddress & 0xFF];
+                        const s9Checksum = this.checksum(s9Record);
+                        return 'S9' + s9Record.map(b => b.toString(16)[hexFormat]().padStart(2, '0')).join('') + s9Checksum.toString(16)[hexFormat]().padStart(2, '0');
+                    
+                    default:
+                        return 'S70500000000FA'; // Default S7 termination
+                }
+            }
+
+            async binToSrecWithProgress(data, options) {
+                const {
+                    startAddress = 0x01600000,
+                    addressOffset = 0x00000000,
+                    byteCount = 32,
+                    recordType = 'S3',
+                    terminationType = 'S7',
+                    hexCase = 'upper'
+                } = options;
+
+                const srecLines = [];
+                let addr = startAddress + addressOffset;
+                const addrBytes = { 'S1': 2, 'S2': 3, 'S3': 4 }[recordType];
+                
+                this.showProgress('Converting to SREC', 0);
+
+                for (let i = 0; i < data.length; i += byteCount) {
+                    // Update progress frequently for smooth experience
+                    if (i % (byteCount * 100) === 0) {
+                        const progress = (i / data.length) * 90; // Reserve 10% for finalization
+                        this.updateProgress(progress, 'Converting to SREC');
+                        await new Promise(resolve => setTimeout(resolve, 1));
+                    }
+
+                    const chunk = data.slice(i, i + byteCount);
+                    const length = chunk.length + addrBytes + 1;
+                    
+                    const record = [length];
+                    for (let j = addrBytes - 1; j >= 0; j--) {
+                        record.push((addr >> (j * 8)) & 0xFF);
+                    }
+                    record.push(...chunk);
+                    
+                    const cksum = this.checksum(record);
+                    const hexFormat = hexCase === 'upper' ? 'toUpperCase' : 'toLowerCase';
+                    const line = recordType + 
+                        record.map(b => b.toString(16)[hexFormat]().padStart(2, '0')).join('') + 
+                        cksum.toString(16)[hexFormat]().padStart(2, '0');
+                    
+                    srecLines.push(line);
+                    addr += byteCount;
+                }
+
+                // Smart termination record handling - only add if original SREC had one
+                const shouldAddTermination = this.srecInfo && this.srecInfo.hasTermination;
+                
+                if (shouldAddTermination) {
+                    this.updateProgress(95, 'Adding termination record');
+                    const termAddr = (this.srecInfo.terminationAddress !== null) 
+                        ? this.srecInfo.terminationAddress 
+                        : startAddress;
+                    const termRecord = this.generateTerminationRecord(terminationType, termAddr, hexCase);
+                    srecLines.push(termRecord);
+                }
+                
+                this.updateProgress(100, 'Complete');
+                await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause to show completion
+                return srecLines.join('\n');
+            }
+
+            async srecToBinWithProgress(text) {
+                const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+                let minAddr = Infinity;
+                let maxAddr = -Infinity;
+
+                // First pass: Find address range without storing data
+                this.showProgress('Analyzing SREC', 0);
+
+                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                    if (lineIndex % 5000 === 0) {
+                        const progress = (lineIndex / lines.length) * 40; // 40% for analysis
+                        this.updateProgress(progress, 'Analyzing SREC');
+                        await new Promise(resolve => setTimeout(resolve, 1));
+                    }
+
+                    const line = lines[lineIndex];
+                    if (line.length < 8) continue;
+                    
+                    const type = line.substring(0, 2);
+                    if (type === 'S1' || type === 'S2' || type === 'S3') {
+                        const lengthByte = parseInt(line.substring(2, 4), 16);
+                        if (isNaN(lengthByte)) continue;
+                        
+                        const addrBytes = type === 'S1' ? 2 : type === 'S2' ? 3 : 4;
+                        if (line.length < 4 + addrBytes * 2 + 2) continue;
+                        
+                        const addrHex = line.substring(4, 4 + addrBytes * 2);
+                        const addr = parseInt(addrHex, 16);
+                        if (isNaN(addr)) continue;
+                        
+                        const dataBytes = lengthByte - addrBytes - 1;
+                        if (dataBytes > 0) {
+                            minAddr = Math.min(minAddr, addr);
+                            maxAddr = Math.max(maxAddr, addr + dataBytes - 1);
+                        }
+                    }
+                }
+
+                if (minAddr === Infinity) return new Uint8Array(0);
+
+                this.updateProgress(45, 'Validating address range');
+                const rangeSize = maxAddr - minAddr + 1;
+                if (rangeSize > 512 * 1024 * 1024) {
+                    throw new Error(`Address range too large: ${(rangeSize / 1024 / 1024).toFixed(1)}MB. Maximum 512MB supported.`);
+                }
+
+                // Second pass: Create array and fill with data directly
+                this.updateProgress(50, 'Creating binary data');
+                const binData = new Uint8Array(rangeSize);
+                binData.fill(0xFF);
+
+                this.updateProgress(55, 'Processing SREC data');
+
+                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                    if (lineIndex % 1000 === 0) {
+                        const progress = 55 + (lineIndex / lines.length) * 40; // 40% for data processing
+                        this.updateProgress(progress, 'Processing SREC data');
+                        await new Promise(resolve => setTimeout(resolve, 1));
+                    }
+
+                    const line = lines[lineIndex];
+                    if (line.length < 8) continue;
+                    
+                    const type = line.substring(0, 2);
+                    if (type === 'S1' || type === 'S2' || type === 'S3') {
+                        const lengthByte = parseInt(line.substring(2, 4), 16);
+                        if (isNaN(lengthByte)) continue;
+                        
+                        const addrBytes = type === 'S1' ? 2 : type === 'S2' ? 3 : 4;
+                        if (line.length < 4 + addrBytes * 2 + 2) continue;
+                        
+                        const addrHex = line.substring(4, 4 + addrBytes * 2);
+                        const addr = parseInt(addrHex, 16);
+                        if (isNaN(addr)) continue;
+                        
+                        const dataStart = 4 + addrBytes * 2;
+                        const dataLength = (lengthByte - addrBytes - 1) * 2;
+                        if (dataStart + dataLength > line.length - 2) continue;
+                        
+                        const dataHex = line.substring(dataStart, dataStart + dataLength);
+                        
+                        // Write directly to array instead of using Map
+                        for (let i = 0; i < dataHex.length; i += 2) {
+                            const byte = parseInt(dataHex.substring(i, i + 2), 16);
+                            if (!isNaN(byte)) {
+                                const byteAddr = addr + i / 2;
+                                const arrayIndex = byteAddr - minAddr;
+                                if (arrayIndex >= 0 && arrayIndex < binData.length) {
+                                    binData[arrayIndex] = byte;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                this.updateProgress(100, 'Complete');
+                await new Promise(resolve => setTimeout(resolve, 200));
+                return binData;
+            }
+
+            async convert() {
+                if (!this.fileData) return;
+
+                // Hide convert button and show loading
+                const convertBtn = document.getElementById('convertBtn');
+                const loading = document.getElementById('loading');
+                
+                convertBtn.style.display = 'none';
+                loading.style.display = 'block';
+                loading.classList.add('show');
+                document.getElementById('result').style.display = 'none';
+
+                try {
+                    if (this.fileType === 'bin') {
+                        await this.convertBinToSrec();
+                    } else {
+                        await this.convertSrecToBin();
+                    }
+                    
+                    // Hide loading and show result
+                    this.hideProgress();
+                    loading.classList.remove('show');
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 300);
+                    
+                    // Update download button text and show result
+                    const outputFormat = this.fileType === 'bin' ? 'SREC' : 'BIN';
+                    document.getElementById('downloadBtn').textContent = `Download ${outputFormat} File`;
+                    document.getElementById('result').style.display = 'block';
+                    
+                } catch (error) {
+                    alert('Error during conversion: ' + error.message);
+                    this.hideProgress();
+                    loading.classList.remove('show');
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 300);
+                    convertBtn.style.display = 'block';
+                }
+            }
+
+            async convertBinToSrec() {
+                // Get configuration
+                const startAddressStr = document.getElementById('startAddress').value;
+                const addressOffsetStr = document.getElementById('addressOffset').value;
+                const byteCount = parseInt(document.getElementById('byteCount').value);
+                const recordType = document.getElementById('recordType').value;
+                const terminationType = document.getElementById('terminationType').value;
+                const hexCase = document.getElementById('hexCase').value;
+                
+                let startAddress, addressOffset;
+                try {
+                    startAddress = parseInt(startAddressStr, 16);
+                    addressOffset = parseInt(addressOffsetStr, 16);
+                } catch (e) {
+                    throw new Error('Invalid address format. Please use hexadecimal format like 0x01600000');
+                }
+
+                const options = {
+                    startAddress,
+                    addressOffset,
+                    byteCount,
+                    recordType,
+                    terminationType,
+                    hexCase
+                };
+
+                // Always use progress version for unified experience
+                this.convertedData = await this.binToSrecWithProgress(this.fileData, options);
+                
+                // Show result
+                const recordCount = this.convertedData.split('\n').length - 1;
+                document.getElementById('resultInfo').innerHTML = `
+                    <div>Generated ${recordCount} ${recordType} records</div>
+                    <div>Record type: ${recordType} with ${terminationType} termination</div>
+                    <div>Output size: ${this.convertedData.length.toLocaleString()} characters</div>
+                `;
+            }
+
+            async convertSrecToBin() {
+                // Always use progress version for unified experience
+                this.convertedData = await this.srecToBinWithProgress(this.fileData);
+                
+                // Show result
+                document.getElementById('resultInfo').innerHTML = `
+                    <div>Extracted ${this.convertedData.length.toLocaleString()} bytes</div>
+                    <div>Start address: ${this.srecInfo.startAddress}</div>
+                    <div>Source records: ${this.srecInfo.records}</div>
+                `;
+            }
+
+            download() {
+                if (!this.convertedData) return;
+
+                // Get custom filename or generate default
+                const customFilename = document.getElementById('outputFilename').value.trim();
+                let filename;
+                const outputExt = this.fileType === 'bin' ? '.srec' : '.bin';
+                
+                if (customFilename) {
+                    filename = customFilename.endsWith(outputExt) ? customFilename : customFilename + outputExt;
+                } else {
+                    filename = this.fileName.replace(/\.[^/.]+$/, '') + outputExt;
+                }
+
+                let blob;
+                if (this.fileType === 'bin') {
+                    // Text download for SREC
+                    blob = new Blob([this.convertedData], { type: 'text/plain' });
+                } else {
+                    // Binary download for BIN
+                    blob = new Blob([this.convertedData], { type: 'application/octet-stream' });
+                }
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new SRECPacker();
+        });
+    </script>
+</body>
+</html> 
