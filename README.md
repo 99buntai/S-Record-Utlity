@@ -34,7 +34,7 @@ A web-based tool for bidirectional conversion between Motorola S-Record (.srec) 
 ### Converting BIN to SREC
 
 <p align="left">
-  <img src="https://github.com/user-attachments/assets/ff90f40f-e9c8-4e75-bace-3302437e6188" alt="bin to srec" width="55%">
+  <img src="https://github.com/user-attachments/assets/ff90f40f-e9c8-4e75-bace-3302437e6188" alt="bin to srec" width="75%">
 </p>
 
 1. **Drop a .bin file** into the interface
@@ -50,7 +50,7 @@ A web-based tool for bidirectional conversion between Motorola S-Record (.srec) 
 ### Converting SREC to BIN
 
 <p align="left">
-  <img src="https://github.com/user-attachments/assets/a3b6fcef-0a90-48ac-b8f7-b85e0cad3dcd" alt="srec to bin" width="55%">
+  <img src="https://github.com/user-attachments/assets/a3b6fcef-0a90-48ac-b8f7-b85e0cad3dcd" alt="srec to bin" width="75%">
 </p>
 
 1. **Drop a .srec file** into the interface
