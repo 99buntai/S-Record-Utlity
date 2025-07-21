@@ -1,6 +1,6 @@
 # SREC Utility 🔧
 
-A powerful, browser-based tool for bidirectional conversion between Binary (.bin) and Motorola S-Record (.srec) files. Built as a single HTML file with no external dependencies.
+A web-based tool for bidirectional conversion between Binary (.bin) and Motorola S-Record (.srec) files. Built as a single HTML file with no external dependencies.
 
 ![SREC Utility Screenshot](https://img.shields.io/badge/Format-SREC%20%E2%86%94%20BIN-blue?style=for-the-badge)
 ![No Dependencies](https://img.shields.io/badge/Dependencies-None-green?style=for-the-badge)
