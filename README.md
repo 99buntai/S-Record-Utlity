@@ -32,11 +32,9 @@ A powerful, browser-based tool for bidirectional conversion between Binary (.bin
 
 
 ### Converting BIN to SREC
-
 <p align="center">
   <img src="https://github.com/user-attachments/assets/0373223f-c97b-4292-b3ec-c08710bbf1ca" alt="bin to srec" width="55%">
 </p>
-
 1. **Drop a .bin file** into the interface
 2. **Configure conversion settings**:
    - **Start Address**: Memory address where data begins (default: 0x01600000)
@@ -48,11 +46,9 @@ A powerful, browser-based tool for bidirectional conversion between Binary (.bin
 4. **Download** the generated .srec file
 
 ### Converting SREC to BIN
-
 <p align="center">
   <img src="https://github.com/user-attachments/assets/e3657866-710a-4351-a942-ab24594528aa" alt="srec to bin" width="55%">
 </p>
-
 1. **Drop a .srec file** into the interface
 2. **View detected file information**:
    - Number of data records
