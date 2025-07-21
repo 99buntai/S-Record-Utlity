@@ -163,8 +163,7 @@ checksum = (~sum(length + address_bytes + data_bytes)) & 0xFF
 - **Vanilla JavaScript**: No external dependencies
 - **File API**: For reading local files
 - **Streaming**: Chunk-based processing for large files
-- **Web Workers**: Not used - single-threaded with yielding
-- **CSS3**: Modern animations and transitions
+- **CSS3**: Modern animated interactions and transitions
 
 ### Key Algorithms
 - **Checksum**: Two's complement verification
