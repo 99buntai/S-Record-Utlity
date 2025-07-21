@@ -33,7 +33,7 @@ A powerful, browser-based tool for bidirectional conversion between Binary (.bin
 
 ### Converting BIN to SREC
 
-<p align="center">
+<p align="left">
   <img src="https://github.com/user-attachments/assets/ff90f40f-e9c8-4e75-bace-3302437e6188" alt="bin to srec" width="55%">
 </p>
 
@@ -49,7 +49,7 @@ A powerful, browser-based tool for bidirectional conversion between Binary (.bin
 
 ### Converting SREC to BIN
 
-<p align="center">
+<p align="left">
   <img src="https://github.com/user-attachments/assets/a3b6fcef-0a90-48ac-b8f7-b85e0cad3dcd" alt="srec to bin" width="55%">
 </p>
 
